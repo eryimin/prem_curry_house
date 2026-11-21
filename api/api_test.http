@@ -1,0 +1,62 @@
+### Test Menu API
+GET http://localhost/prem_curry_house/api/menu.php
+
+### Test Menu Search
+GET http://localhost/prem_curry_house/api/menu.php?search=chicken
+
+### Test Tiffin Plans API
+GET http://localhost/prem_curry_house/api/tiffin_plans.php
+
+### Test Customer Registration API
+POST http://localhost/prem_curry_house/api/register.php
+Content-Type: application/json
+
+{
+  "full_name": "Demo API Customer",
+  "email": "demoapi@example.com",
+  "password": "DemoTest2026!"
+}
+
+### Test Customer Login API
+POST http://localhost/prem_curry_house/api/login.php
+Content-Type: application/json
+
+{
+  "email": "demoapi@example.com",
+  "password": "DemoTest2026!"
+}
+
+### Test Customer Order History API
+GET http://localhost/prem_curry_house/api/order_history.php
+Authorization: Bearer 6b11d057eb206d5475b5cc79ffe2fd6bbad7d7c98d5837083e1bc1abf7177f8a
+
+
+### Test Tiffin Order Submission API
+POST http://localhost/prem_curry_house/api/create_order.php
+Content-Type: application/json
+Authorization: Bearer 28c53eec7f8607e6565186fb89d36b348d136edf4f263b5db6cc244d68a9f8bc
+
+{
+  "plan_id": 1,
+  "customer_name": "Demo API Customer",
+  "phone": "0123456789",
+  "delivery_address": "Jalan SS15, Subang Jaya, Selangor",
+  "start_date": "2026-11-20",
+  "special_requests": "Less spicy food, please."
+}
+
+### Test Customer Enquiry API
+POST http://localhost/prem_curry_house/api/enquiry.php
+Content-Type: application/json
+Authorization: Bearer ca57c47a126f4523f4c4c26443de87a792097da0ca425bf4a31c306a47765970
+
+{
+  "phone": "0123456789",
+  "subject": "Tiffin Delivery Enquiry",
+  "message": "Can I request less spicy food for my monthly tiffin plan?"
+}
+
+### Test Customer Logout API
+POST http://localhost/prem_curry_house/api/logout.php
+Authorization: Bearer 655f3be83a6ebcf41544f2ad49e8ed311d9d75c57c00fa441dcb4b43bffa7b8b
+

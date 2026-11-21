@@ -1,0 +1,840 @@
+
+/* =====================================
+   PREM CURRY HOUSE - WEBSITE STYLES
+   ===================================== */
+
+/* Website colour palette */
+:root {
+    --primary-green: #527B35;
+    --dark-green: #3F6029;
+    --golden-yellow: #E8C65B;
+    --royal-blue: #303C89;
+    --warm-cream: #FFF9ED;
+    --dark-text: #292C20;
+}
+
+/* General styling */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 90px;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--warm-cream);
+    color: var(--dark-text);
+    margin: 0;
+}
+
+p {
+    line-height: 1.8;
+    color: #5F6259;
+}
+
+.section-padding {
+    padding: 90px 0;
+}
+
+.section-label {
+    color: var(--primary-green);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.section-title {
+    font-size: 38px;
+    font-weight: 800;
+    margin: 15px 0 20px;
+}
+
+.section-intro {
+    max-width: 650px;
+}
+
+
+/* NAVIGATION BAR */
+
+.pch-navbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1050;
+    background-color: #ffffff;
+    padding: 12px 0;
+    border-bottom: 1px solid #e9eee5;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Restaurant logo */
+.pch-navbar .navbar-brand {
+    color: var(--primary-green) !important;
+    font-size: 19px;
+    font-weight: 800;
+    white-space: nowrap;
+    margin-right: 24px;
+}
+
+.pch-navbar .navbar-brand i {
+    color: var(--primary-green);
+}
+
+/* Navigation links */
+.pch-navbar .navbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pch-navbar .nav-link {
+    color: var(--dark-text);
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 0;
+    padding: 8px 10px;
+    white-space: nowrap;
+}
+
+.pch-navbar .nav-link:hover,
+.pch-navbar .nav-link:focus {
+    color: var(--primary-green);
+}
+
+/* Customer action buttons */
+.pch-navbar .btn {
+    font-size: 12px;
+    padding: 6px 10px;
+    white-space: nowrap;
+}
+
+/* Cart */
+.pch-navbar .pch-cart-link {
+    color: var(--primary-green) !important;
+    font-weight: 700;
+}
+
+/* Keep section headings visible */
+html {
+    scroll-padding-top: 90px;
+}
+
+/* Tablet and mobile */
+@media (max-width: 1199px) {
+    .pch-navbar .navbar-nav {
+        gap: 3px;
+    }
+
+    .pch-navbar .nav-link {
+        font-size: 12px;
+        padding: 8px 6px;
+    }
+
+    .pch-navbar .btn {
+        font-size: 11px;
+        padding: 5px 7px;
+    }
+}
+
+@media (max-width: 991px) {
+    .pch-navbar .navbar-nav {
+        align-items: flex-start;
+        gap: 4px;
+        padding: 12px 0;
+    }
+
+    .pch-navbar .nav-link {
+        font-size: 14px;
+        padding: 10px 12px;
+    }
+
+    .pch-navbar .navbar-collapse {
+        max-height: calc(100vh - 75px);
+        overflow-y: auto;
+    }
+}
+
+
+/* Hero */
+.hero-section {
+    padding: 95px 0;
+    background-color: var(--warm-cream);
+}
+
+.hero-title {
+    font-size: clamp(42px, 5vw, 68px);
+    line-height: 1.15;
+    font-weight: 800;
+}
+
+.hero-title span {
+    color: var(--primary-green);
+}
+
+.hero-description {
+    font-size: 18px;
+    margin: 25px 0 30px;
+}
+
+.hero-image {
+    width: 100%;
+    height: 460px;
+    object-fit: cover;
+    border-radius: 24px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12);
+}
+
+/* Buttons */
+.btn-pch {
+    background-color: var(--primary-green);
+    border: 2px solid var(--primary-green);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.btn-pch:hover {
+    background-color: var(--dark-green);
+    border-color: var(--dark-green);
+    color: white;
+}
+
+.btn-pch-outline {
+    border: 2px solid var(--primary-green);
+    color: var(--primary-green);
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.btn-pch-outline:hover {
+    background-color: var(--primary-green);
+    color: white;
+}
+
+/* About */
+.section-image {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+    border-radius: 20px;
+}
+
+/* Featured food */
+.specialties-section {
+    background-color: #F3F0E5;
+}
+
+.food-card {
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s ease;
+}
+
+.food-card:hover {
+    transform: translateY(-6px);
+}
+
+.food-card img {
+    width: 100%;
+    height: 230px;
+    object-fit: cover;
+}
+
+.food-card .card-body {
+    padding: 25px;
+}
+
+.food-card .card-title {
+    font-weight: 700;
+    color: var(--dark-text);
+}
+
+.food-price {
+    color: var(--primary-green);
+    font-size: 21px;
+    font-weight: 800;
+    margin-bottom: 0;
+}
+
+/* Monthly tiffin */
+.tiffin-section {
+    background-color: #EAF0DE;
+}
+
+.tiffin-card {
+    background-color: white;
+    border-radius: 18px;
+    padding: 40px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+}
+
+.tiffin-card h3 {
+    font-size: 23px;
+    font-weight: 700;
+    margin: 20px 0;
+}
+
+.tiffin-icon {
+    font-size: 40px;
+    color: var(--primary-green);
+}
+
+.coming-soon {
+    display: inline-block;
+    color: var(--dark-green);
+    font-size: 13px;
+    font-weight: 700;
+    background-color: #EAF0DE;
+    padding: 10px 14px;
+    border-radius: 8px;
+}
+
+/* Footer */
+.pch-footer {
+    background-color: #243C25;
+    color: white;
+    padding: 45px 0 20px;
+}
+
+.pch-footer p,
+.pch-footer a {
+    color: #E0E8D9;
+}
+
+.pch-footer a {
+    text-decoration: none;
+}
+
+.pch-footer a:hover {
+    color: var(--golden-yellow);
+}
+
+/* Mobile and tablet */
+@media (max-width: 991px) {
+    .hero-section {
+        padding: 60px 0;
+    }
+
+    .hero-image {
+        height: 350px;
+    }
+
+    .navbar .nav-link {
+        margin-left: 0;
+        padding: 10px 0;
+    }
+}
+
+@media (max-width: 576px) {
+    .section-padding {
+        padding: 60px 0;
+    }
+
+    .section-title {
+        font-size: 30px;
+    }
+
+    .hero-title {
+        font-size: 42px;
+    }
+
+    .hero-image {
+        height: 270px;
+    }
+
+    .section-image {
+        height: 270px;
+    }
+
+    .tiffin-card {
+        padding: 28px;
+    }
+
+    .navbar-brand {
+        font-size: 16px;
+    }
+}
+
+
+/* =====================================
+   DYNAMIC MENU PAGE
+   ===================================== */
+
+.menu-banner {
+    background-color: #EAF0DE;
+    padding: 80px 0;
+}
+
+.menu-banner p {
+    max-width: 650px;
+    margin: 0 auto;
+}
+
+.category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.category-btn {
+    text-decoration: none;
+    background-color: white;
+    color: var(--dark-text);
+    border: 1px solid #DDE4D3;
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.category-btn:hover,
+.category-btn.active {
+    background-color: var(--primary-green);
+    color: white;
+    border-color: var(--primary-green);
+}
+
+.menu-category {
+    color: var(--primary-green);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.availability {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+.availability.available {
+    background-color: #E5F3DD;
+    color: #346B2B;
+}
+
+.availability.unavailable {
+    background-color: #FBE5E5;
+    color: #A23A3A;
+}
+
+@media (max-width: 576px) {
+    .menu-banner {
+        padding: 55px 0;
+    }
+
+    .category-btn {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+}
+
+
+/* =====================================
+   MENU CATEGORY SIDEBAR
+   ===================================== */
+
+.menu-sidebar {
+    background-color: #FFF9ED;
+    padding: 20px;
+    border: 1px solid #E8E1D2;
+    border-radius: 16px;
+}
+
+.menu-sidebar h4 {
+    color: #527B35;
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.menu-all-link {
+    display: block;
+    text-decoration: none;
+    color: #333333;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.menu-all-link:hover,
+.menu-all-link.selected {
+    background-color: #527B35;
+    color: white;
+}
+
+.menu-sidebar .accordion-item {
+    border: 1px solid #E8E1D2;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.menu-sidebar .accordion-button {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333333;
+    background-color: white;
+    box-shadow: none;
+}
+
+.menu-sidebar .accordion-button:not(.collapsed) {
+    color: #527B35;
+    background-color: #F0F5E9;
+    box-shadow: none;
+}
+
+.menu-sidebar .accordion-button:focus {
+    box-shadow: none;
+}
+
+.menu-sidebar .accordion-body {
+    padding: 8px;
+}
+
+.menu-sub-link {
+    display: block;
+    padding: 10px 12px;
+    text-decoration: none;
+    color: #444444;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.menu-sub-link:hover,
+.menu-sub-link.selected {
+    background-color: #E8F0DD;
+    color: #527B35;
+    font-weight: 700;
+}
+
+@media (max-width: 991px) {
+    .menu-sidebar {
+        margin-bottom: 15px;
+    }
+}
+
+/* =====================================
+   STAFF LOGIN PAGE
+   ===================================== */
+
+.login-section {
+    background-color: #FFF9ED;
+    min-height: 75vh;
+    display: flex;
+    align-items: center;
+    padding: 70px 0;
+}
+
+.login-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E8E1D2;
+    border-radius: 18px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.login-card h2 {
+    color: #527B35;
+    font-weight: 700;
+}
+
+.login-icon {
+    font-size: 48px;
+    color: #527B35;
+}
+
+.login-card .form-control {
+    padding: 12px 14px;
+    border-radius: 10px;
+}
+
+.login-card .form-control:focus {
+    border-color: #527B35;
+    box-shadow: 0 0 0 0.2rem rgba(82, 123, 53, 0.15);
+}
+
+@media (max-width: 576px) {
+    .login-card {
+        padding: 25px;
+    }
+}
+
+/* =====================================
+   ADMIN DASHBOARD
+   ===================================== */
+
+.admin-body {
+    background-color: #FFF9ED;
+    min-height: 100vh;
+}
+
+.admin-navbar {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #E8E1D2;
+    padding: 15px 0;
+}
+
+.admin-navbar .navbar-brand {
+    color: #527B35;
+    font-size: 20px;
+}
+
+.admin-role {
+    color: #527B35;
+    font-weight: 600;
+}
+
+.dashboard-heading h1 {
+    color: #527B35;
+    font-weight: 800;
+    font-size: 34px;
+}
+
+.dashboard-heading p {
+    color: #666666;
+}
+
+.dashboard-stat-card {
+    background-color: white;
+    border: 1px solid #E8E1D2;
+    border-radius: 16px;
+    padding: 25px;
+    height: 100%;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.04);
+}
+
+.dashboard-stat-card .stat-icon {
+    font-size: 30px;
+    color: #527B35;
+}
+
+.dashboard-stat-card h2 {
+    font-size: 36px;
+    font-weight: 800;
+    color: #333333;
+    margin-top: 15px;
+}
+
+.dashboard-stat-card p {
+    color: #777777;
+    font-size: 14px;
+    margin-bottom: 0;
+}
+
+.dashboard-panel {
+    background-color: white;
+    border: 1px solid #E8E1D2;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.04);
+}
+
+.dashboard-panel h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #527B35;
+}
+
+.dashboard-action {
+    background-color: #F8FAF4;
+    border: 1px solid #E0E8D7;
+    border-radius: 12px;
+    padding: 25px;
+    height: 100%;
+}
+
+.dashboard-action > i {
+    font-size: 30px;
+    color: #527B35;
+}
+
+.dashboard-action h5 {
+    font-weight: 700;
+    margin-top: 15px;
+}
+
+.dashboard-action p {
+    font-size: 14px;
+    color: #777777;
+}
+
+.dashboard-panel .table thead th {
+    background-color: #F0F5E9;
+    color: #527B35;
+    padding: 15px;
+}
+
+.dashboard-panel .table tbody td {
+    padding: 15px;
+}
+
+@media (max-width: 576px) {
+    .dashboard-heading h1 {
+        font-size: 27px;
+    }
+
+    .dashboard-stat-card {
+        padding: 18px;
+    }
+
+    .dashboard-stat-card h2 {
+        font-size: 28px;
+    }
+
+    .dashboard-panel {
+        padding: 18px;
+    }
+
+    .admin-navbar .navbar-brand {
+        font-size: 15px;
+    }
+}
+
+
+/* Monthly Tiffin - One Line Description */
+.tiffin-description {
+    max-width: none;
+    width: 100%;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 15px;
+}
+
+@media (max-width: 1100px) {
+    .tiffin-description {
+        white-space: normal;
+    }
+}
+
+/* ===================================
+   HOMEPAGE - COMPACT SPACING
+   =================================== */
+
+.hero-section {
+    padding-top: 45px !important;
+    padding-bottom: 45px !important;
+}
+
+.section-padding {
+    padding-top: 50px !important;
+    padding-bottom: 50px !important;
+}
+
+.hero-section .row {
+    min-height: auto;
+}
+
+.section-title {
+    margin-bottom: 18px;
+}
+
+.tiffin-section {
+    padding-top: 50px !important;
+    padding-bottom: 50px !important;
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+    .hero-section,
+    .section-padding,
+    .tiffin-section {
+        padding-top: 32px !important;
+        padding-bottom: 32px !important;
+    }
+}
+
+
+/* Oval Search Bar */
+
+.pch-menu-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 850px;
+    margin: 0 auto 30px;
+}
+
+.pch-search-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    background: #ffffff;
+    border: 1px solid #dce4d8;
+    border-radius: 50px;
+    padding: 0 18px;
+    height: 46px;
+}
+
+.pch-search-input-wrap i {
+    color: #527b35;
+    font-size: 17px;
+}
+
+.pch-search-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+}
+
+.pch-search-input-wrap:focus-within {
+    border-color: #527b35;
+    box-shadow: 0 0 0 3px rgba(82, 123, 53, 0.12);
+}
+
+.pch-search-btn {
+    height: 46px;
+    padding: 0 25px;
+    background: #527b35;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.pch-search-btn:hover {
+    background: #3d612a;
+}
+
+@media (max-width: 575px) {
+    .pch-menu-search {
+        gap: 8px;
+    }
+
+    .pch-search-btn {
+        padding: 0 16px;
+    }
+}
+
+/* ============================================
+   FIXED NAVIGATION BAR
+   ============================================ */
+
+.navbar.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 1050;
+    background-color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* Keep anchor sections visible below navbar */
+html {
+    scroll-padding-top: 90px;
+}
+
+.pch-navbar .navbar-nav {
+    gap: 10px;
+}
