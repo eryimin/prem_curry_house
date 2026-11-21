@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/food_order/bootstrap.php';
 
@@ -44,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $previousId = $previousId === false ? 0 : max(0, $previousId);
 
     $sql = "
-        SELECT item_id, item_name, price
+        SELECT item_id, item_name, price, image
         FROM menu_items
         WHERE is_available = 1
     ";
@@ -71,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ((int)$food['item_id'] === $previousId) {
         $alternateSql = "
-            SELECT item_id, item_name, price
+            SELECT item_id, item_name, price, image
             FROM menu_items
             WHERE is_available = 1
               AND item_id <> :previous_id
@@ -100,7 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'food' => [
             'id' => (int)$food['item_id'],
             'name' => $food['item_name'],
-            'price' => number_format((float)$food['price'], 2)
+            'price' => number_format((float)$food['price'], 2),
+            'image' => trim((string)($food['image'] ?? ''))
         ]
     ]);
     exit;
@@ -159,6 +159,67 @@ require __DIR__ . '/includes/header.php';
 .pch-blind-panel h2 {
     color: #263727;
     font-size: 23px;
+    font-weight: 800;
+}
+
+/* REVEALED DISH: SHOW IMAGE, NAME AND PRICE TOGETHER */
+.pch-food-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 22px;
+}
+.pch-result-image-wrap {
+    width: 100%;
+    max-width: 440px;
+    aspect-ratio: 16 / 9;
+    margin: 0 auto 10px;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #edf3e9;
+    border: 1px solid #e3e9df;
+}
+.pch-result-image-wrap[hidden] {
+    display: none;
+}
+.pch-result-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+.pch-result-image-fallback {
+    display: none;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #527b35;
+    font-size: 13px;
+}
+.pch-result-image-fallback i {
+    font-size: 32px;
+}
+.pch-result-image-wrap.is-fallback .pch-result-image {
+    display: none;
+}
+.pch-result-image-wrap.is-fallback .pch-result-image-fallback {
+    display: flex;
+}
+.pch-food-result .pch-food-name {
+    margin: 0;
+    color: #263727;
+    font-size: 24px;
+    font-weight: 800;
+}
+.pch-food-result .pch-food-price {
+    margin: 0;
+    color: #527b35;
+    font-size: 20px;
     font-weight: 800;
 }
 .pch-blind-btn {
@@ -482,8 +543,16 @@ require __DIR__ . '/includes/header.php';
 
             <section id="pch-result-screen" hidden>
                 <div class="pch-food-result">
-                    <div class="pch-result-icon">
-                        <i class="bi bi-egg-fried"></i>
+                    <div class="pch-result-image-wrap" id="pch-result-image-wrap" hidden>
+                        <img
+                            id="pch-food-image"
+                            class="pch-result-image"
+                            alt=""
+                        >
+                        <div class="pch-result-image-fallback" aria-hidden="true">
+                            <i class="bi bi-egg-fried"></i>
+                            <span>Food image unavailable</span>
+                        </div>
                     </div>
 
                     <small>YOU GOT!</small>
@@ -542,6 +611,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const errorBox = document.getElementById('pch-blind-error');
     const revealBtns = document.querySelectorAll('.pch-mystery-card');
     const startBudgetBtn = document.getElementById('pch-start-budget-btn');
+    const resultImageWrap = document.getElementById('pch-result-image-wrap');
+    const resultImage = document.getElementById('pch-food-image');
+
+    resultImage.addEventListener('error', function () {
+        resultImageWrap.classList.add('is-fallback');
+    });
+
+    function showFoodImage(food) {
+        const path = String(food.image || '').trim();
+        resultImageWrap.hidden = false;
+        resultImageWrap.classList.remove('is-fallback');
+        resultImage.alt = 'Photo of ' + food.name;
+
+        if (!path) {
+            resultImage.removeAttribute('src');
+            resultImageWrap.classList.add('is-fallback');
+            return;
+        }
+
+        // Image paths in menu_items are relative to the project root.
+        // Reject unsafe URLs and use the same path as the menu page.
+        if (
+            !path.startsWith('assets/images/') ||
+            path.includes('..') ||
+            path.includes('\\')
+        ) {
+            resultImage.removeAttribute('src');
+            resultImageWrap.classList.add('is-fallback');
+            return;
+        }
+
+        resultImage.src = path;
+    }
 
     let selectedBudget = 0;
     let previousId = 0;
@@ -641,6 +743,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 document.getElementById('pch-food-price').textContent =
                     'RM ' + data.food.price;
+
+                showFoodImage(data.food);
 
                 showScreen('result');
 
