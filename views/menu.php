@@ -1479,6 +1479,7 @@ function foodSlug($name) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+
     const popup = document.getElementById('pch-blind-invite');
     const closeBtn = document.getElementById('pch-blind-invite-close');
     const laterBtn = document.getElementById('pch-blind-invite-later');
@@ -1488,66 +1489,141 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const popupDelay = 5000;
+    // POPUP SETTINGS
+    const firstPopupDelay = 10000;    // 10 seconds
+    const repeatPopupDelay = 120000;  // 2 minutes
 
-    let hasScrolled = window.scrollY > 100;
-    let timeReached = false;
-    let popupShown = false;
+    const dismissedKey = 'pch_blind_popup_dismissed';
+    const snoozeKey = 'pch_blind_popup_snooze_until';
+
+    let popupTimer = null;
     let lastFocused = null;
 
+    // Check whether customer has permanently closed the popup
+    function isDismissed() {
+        return localStorage.getItem(dismissedKey) === 'true';
+    }
+
+    function schedulePopup(delay) {
+
+        clearTimeout(popupTimer);
+
+        if (isDismissed()) {
+            return;
+        }
+
+        popupTimer = setTimeout(showPopup, delay);
+    }
+
     function showPopup() {
-        if (popupShown || !timeReached || !hasScrolled) {
+
+        if (isDismissed() || !popup.hidden) {
             return;
         }
 
+        const snoozeUntil = Number(
+            localStorage.getItem(snoozeKey) || 0
+        );
+
+        // Customer previously clicked Maybe Later
+        if (Date.now() < snoozeUntil) {
+
+            schedulePopup(snoozeUntil - Date.now());
+            return;
+        }
+
+        // Do not interrupt food customisation
         if (foodModal && foodModal.open) {
+
+            schedulePopup(1000);
             return;
         }
 
-        popupShown = true;
         lastFocused = document.activeElement;
+
         popup.hidden = false;
+
         closeBtn.focus();
     }
 
     function hidePopup() {
+
         popup.hidden = true;
 
-        if (lastFocused && typeof lastFocused.focus === 'function') {
+        if (
+            lastFocused &&
+            typeof lastFocused.focus === 'function'
+        ) {
             lastFocused.focus();
         }
     }
 
-    window.addEventListener('scroll', function () {
-        if (window.scrollY > 100) {
-            hasScrolled = true;
-            showPopup();
+    // MAYBE LATER: show again after 2 minutes
+    laterBtn.addEventListener('click', function () {
+
+        hidePopup();
+
+        const nextPopupTime =
+            Date.now() + repeatPopupDelay;
+
+        localStorage.setItem(
+            snoozeKey,
+            String(nextPopupTime)
+        );
+
+        schedulePopup(repeatPopupDelay);
+    });
+
+    // X BUTTON: permanently disable automatic popup
+    closeBtn.addEventListener('click', function () {
+
+        hidePopup();
+
+        clearTimeout(popupTimer);
+
+        localStorage.setItem(
+            dismissedKey,
+            'true'
+        );
+
+        localStorage.removeItem(snoozeKey);
+    });
+
+    // Clicking outside works like Maybe Later
+    popup.addEventListener('click', function (event) {
+
+        if (event.target === popup) {
+            laterBtn.click();
         }
-    }, { passive: true });
+    });
 
-    window.setTimeout(function () {
-        timeReached = true;
-        showPopup();
-    }, popupDelay);
+    // Escape key works like Maybe Later
+    document.addEventListener('keydown', function (event) {
 
-    if (foodModal) {
-        foodModal.addEventListener('close', showPopup);
+        if (event.key === 'Escape' && !popup.hidden) {
+            laterBtn.click();
+        }
+    });
+
+    // Start timer when customer opens the menu
+    if (!isDismissed()) {
+
+        const snoozeUntil = Number(
+            localStorage.getItem(snoozeKey) || 0
+        );
+
+        if (Date.now() < snoozeUntil) {
+
+            schedulePopup(snoozeUntil - Date.now());
+
+        } else {
+
+            localStorage.removeItem(snoozeKey);
+
+            schedulePopup(firstPopupDelay);
+        }
     }
 
-    closeBtn.addEventListener('click', hidePopup);
-    laterBtn.addEventListener('click', hidePopup);
-
-    popup.addEventListener('click', function (event) {
-        if (event.target === popup) {
-            hidePopup();
-        }
-    });
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && !popup.hidden) {
-            hidePopup();
-        }
-    });
 });
 </script>
 

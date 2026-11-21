@@ -1,25 +1,178 @@
-
 <?php
-// ============================================
-// PREM CURRY HOUSE - SIMULATED PAYMENT PAGE
-// ============================================
 
 require_once __DIR__ . '/food_order/bootstrap.php';
 
 // ============================================
-// CHECK CUSTOMER SESSION
+// CUSTOMER SESSION
 // ============================================
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
-$orderId = (int)($_SESSION['pch_last_food_order'] ?? 0);
 
-if ($userId < 1 || $orderId < 1) {
+$orderId = (int)(
+    $_SESSION['pch_last_food_order'] ?? 0
+);
+
+if (
+    $userId < 1 ||
+    $orderId < 1 ||
+    ($_SESSION['role'] ?? '') !== 'guest'
+) {
     header('Location: menu.php');
     exit;
 }
 
+// Customer is editing an unpaid order.
+// Require checkout confirmation before payment.
+
+if (
+    (int)($_SESSION['pch_editing_order_id'] ?? 0)
+    === $orderId
+) {
+    header('Location: food_checkout.php');
+    exit;
+}
+
 // ============================================
-// LOAD ORDER FROM MYSQL
+// PAYMENT METHODS
+// ============================================
+
+$paymentLabels = [
+    'card' => 'Credit / Debit Card',
+    'fpx' => 'FPX Online Banking',
+    'tng' => "Touch 'n Go eWallet"
+];
+
+$bankNames = [
+    'maybank' => 'Maybank',
+    'cimb' => 'CIMB Bank',
+    'public_bank' => 'Public Bank',
+    'rhb' => 'RHB Bank',
+    'hong_leong' => 'Hong Leong Bank',
+    'bank_islam' => 'Bank Islam'
+];
+
+// ============================================
+// CHANGE PAYMENT METHOD
+// ============================================
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    pch_verify();
+
+    if (
+        ($_POST['action'] ?? '') !==
+        'change_payment_method'
+    ) {
+        http_response_code(422);
+        exit('Invalid payment action.');
+    }
+
+    $newMethod = (string)(
+        $_POST['online_choice'] ?? ''
+    );
+
+    $newBank = null;
+
+    if (!array_key_exists($newMethod, $paymentLabels)) {
+        http_response_code(422);
+        exit('Invalid payment method.');
+    }
+
+    if ($newMethod === 'fpx') {
+
+        $newBank = (string)(
+            $_POST['bank'] ?? ''
+        );
+
+        if (!array_key_exists($newBank, $bankNames)) {
+            http_response_code(422);
+            exit('Please select a valid bank.');
+        }
+    }
+
+    try {
+
+        // Update only an unpaid order belonging
+        // to the currently logged-in customer.
+
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare("
+            SELECT order_id
+            FROM pch_food_orders
+            WHERE order_id = ?
+              AND user_id = ?
+              AND fulfilment = 'delivery'
+              AND payment_method IN (
+                  'online_demo',
+                  'online'
+              )
+              AND payment_status IN (
+                  'demo_unpaid',
+                  'pending'
+              )
+            FOR UPDATE
+        ");
+
+        $stmt->execute([$orderId, $userId]);
+
+        if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+            throw new RuntimeException(
+                'This order is no longer awaiting payment.'
+            );
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE pch_food_orders
+            SET online_choice = ?,
+                bank = ?
+            WHERE order_id = ?
+              AND user_id = ?
+              AND payment_status IN (
+                  'demo_unpaid',
+                  'pending'
+              )
+        ");
+
+        $stmt->execute([
+            $newMethod,
+            $newBank,
+            $orderId,
+            $userId
+        ]);
+
+        $pdo->commit();
+
+        header('Location: food_demo_payment.php');
+        exit;
+
+    } catch (RuntimeException $e) {
+
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        http_response_code(409);
+        exit(pch_h($e->getMessage()));
+
+    } catch (Throwable $e) {
+
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        error_log(
+            'Payment method update: ' .
+            $e->getMessage()
+        );
+
+        http_response_code(500);
+        exit('Unable to update payment method.');
+    }
+}
+
+// ============================================
+// LOAD ORDER
 // ============================================
 
 $stmt = $pdo->prepare("
@@ -45,69 +198,72 @@ $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$order) {
     http_response_code(403);
-    exit('Order not found or access denied.');
+    exit('Order not found.');
 }
 
-// Only delivery demo payments use this page
+// ============================================
+// VERIFY PAYMENT ELIGIBILITY
+// ============================================
+
 if (
     $order['fulfilment'] !== 'delivery' ||
-    $order['payment_method'] !== 'online_demo'
+    !in_array(
+        $order['payment_method'],
+        ['online_demo', 'online'],
+        true
+    )
 ) {
     header('Location: food_order_success.php');
     exit;
 }
 
-// Already completed
-if ($order['payment_status'] === 'demo_paid') {
+// Already paid
+if (in_array(
+    $order['payment_status'],
+    ['demo_paid', 'paid'],
+    true
+)) {
     header('Location: food_order_success.php');
     exit;
 }
 
-if ($order['payment_status'] !== 'demo_unpaid') {
+// Only unpaid delivery orders can continue
+if (!in_array(
+    $order['payment_status'],
+    ['demo_unpaid', 'pending'],
+    true
+)) {
     http_response_code(409);
-    exit('This order is not awaiting demo payment.');
+    exit('This order is not awaiting payment.');
 }
 
 // ============================================
-// PAYMENT METHOD
+// SELECTED PAYMENT METHOD
 // ============================================
 
 $method = (string)$order['online_choice'];
-
-$paymentLabels = [
-    'card' => 'Credit / Debit Card',
-    'fpx' => 'FPX Online Banking',
-    'tng' => "Touch 'n Go eWallet"
-];
 
 if (!isset($paymentLabels[$method])) {
     http_response_code(422);
     exit('Invalid payment method.');
 }
 
-$bankNames = [
-    'maybank' => 'Maybank',
-    'cimb' => 'CIMB Bank',
-    'public_bank' => 'Public Bank',
-    'rhb' => 'RHB Bank',
-    'hong_leong' => 'Hong Leong Bank',
-    'bank_islam' => 'Bank Islam'
-];
-
 $bankLabel = $bankNames[
     (string)($order['bank'] ?? '')
 ] ?? 'Selected Bank';
 
-// ============================================
-// LOAD PAGE
-// ============================================
-
-$pageTitle = 'Demo Payment | Prem Curry House';
+$pageTitle = 'Complete Payment | Prem Curry House';
 
 require __DIR__ . '/includes/header.php';
+
 ?>
 
 <style>
+
+/* ============================================
+   PAYMENT PAGE
+   ============================================ */
+
 .pch-pay-page {
     max-width: 960px;
     margin: 45px auto 75px;
@@ -121,7 +277,7 @@ require __DIR__ . '/includes/header.php';
 }
 
 .pch-pay-panel {
-    background: white;
+    background: #ffffff;
     border: 1px solid #e2e9dc;
     border-radius: 16px;
     padding: 28px;
@@ -142,19 +298,10 @@ require __DIR__ . '/includes/header.php';
     margin: 15px 0;
 }
 
-.pch-test-badge {
-    display: inline-block;
-    background: #e7eefb;
-    color: #2758a5;
-    border-radius: 20px;
-    padding: 6px 12px;
-    font-size: 11px;
-    font-weight: 800;
-}
-
 .pch-pay-muted {
     color: #718071;
     font-size: 13px;
+    line-height: 1.7;
 }
 
 .pch-pay-amount {
@@ -175,6 +322,29 @@ require __DIR__ . '/includes/header.php';
 .pch-pay-method i {
     color: #527b35;
     margin-right: 8px;
+}
+
+.pch-change-payment {
+    margin-top: 15px;
+    border-top: 1px solid #dce6d6;
+    padding-top: 15px;
+}
+
+.pch-change-payment label {
+    display: block;
+    color: #29432d;
+    font-size: 13px;
+    font-weight: 700;
+    margin: 9px 0 6px;
+}
+
+.pch-change-payment select {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #dce6d6;
+    border-radius: 9px;
+    background: #fff;
 }
 
 .pch-pay-field {
@@ -214,95 +384,123 @@ require __DIR__ . '/includes/header.php';
     background: #527b35;
     border: none;
     border-radius: 9px;
-    color: white;
+    color: #ffffff;
     font-size: 14px;
     font-weight: 800;
     cursor: pointer;
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
 .pch-pay-button:hover {
-    background: #3f632a;
+    background: #3e6329;
 }
 
-.pch-pay-fail {
-    background: white;
-    color: #b34d45;
-    border: 1px solid #b34d45;
+.pch-bank-box {
+    background: #f7faf4;
+    border: 1px solid #e0e8db;
+    border-radius: 12px;
+    padding: 28px 15px;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-.pch-pay-fail:hover {
-    background: #fff0ee;
+.pch-bank-box i {
+    display: block;
+    font-size: 42px;
+    color: #527b35;
+    margin-bottom: 12px;
 }
 
-.pch-pay-warning {
-    background: #fff8e7;
-    border: 1px solid #f0dfac;
-    padding: 13px;
-    border-radius: 9px;
-    font-size: 12px;
-    line-height: 1.7;
-    margin: 18px 0;
+.pch-bank-box h3 {
+    color: #29432d;
+    font-size: 20px;
+    font-weight: 700;
 }
 
 .pch-pay-qr {
     width: 180px;
     height: 180px;
-    background: #f0f4ec;
     border: 2px solid #527b35;
-    border-radius: 12px;
+    border-radius: 13px;
+    background: #f7faf4;
+    margin: 15px auto 25px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin: 20px auto;
+    gap: 8px;
     color: #527b35;
 }
 
 .pch-pay-qr i {
-    font-size: 65px;
+    font-size: 70px;
 }
 
 .pch-pay-qr span {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
 }
 
-.pch-bank-box {
-    background: #f7faf4;
-    border: 1px solid #e2e9dc;
-    border-radius: 10px;
-    padding: 18px;
-    text-align: center;
-    margin: 20px 0;
-}
-
-.pch-bank-box i {
-    font-size: 42px;
-    color: #527b35;
-}
-
-.pch-bank-box h3 {
-    font-size: 19px;
-    margin-top: 10px;
-}
-
-.pch-pay-back {
-    display: block;
-    text-align: center;
+.pch-pay-warning {
     margin-top: 18px;
-    color: #527b35;
-    text-decoration: none;
-    font-size: 13px;
+    padding: 13px;
+    border: 1px solid #f0dca9;
+    border-radius: 10px;
+    background: #fff8e5;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #594b2d;
 }
 
 @media (max-width: 767px) {
+
     .pch-pay-layout {
         grid-template-columns: 1fr;
     }
 
     .pch-pay-panel {
         padding: 20px;
+    }
+}
+
+/* ============================================
+   PAYMENT BACK BUTTONS
+   ============================================ */
+
+.pch-payment-back-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.pch-payment-back-actions form {
+    margin: 0;
+}
+
+.pch-payment-back-btn {
+    width: 100%;
+    padding: 12px 10px;
+    border: 1px solid #527b35;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #527b35;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pch-payment-back-btn:hover {
+    background: #eaf0de;
+}
+
+.pch-payment-back-btn i {
+    margin-right: 5px;
+}
+
+@media (max-width: 480px) {
+    .pch-payment-back-actions {
+        grid-template-columns: 1fr;
     }
 }
 </style>
@@ -321,12 +519,8 @@ require __DIR__ . '/includes/header.php';
                 PREM CURRY HOUSE
             </div>
 
-            <span class="pch-test-badge">
-                SANDBOX SIMULATION
-            </span>
-
             <h1 class="pch-pay-title">
-                Complete Your Demo Payment
+                Complete Your Payment
             </h1>
 
             <p class="pch-pay-muted">
@@ -367,19 +561,171 @@ require __DIR__ . '/includes/header.php';
 
             </div>
 
+            <!-- ====================================
+                 CHANGE PAYMENT METHOD
+                 ==================================== -->
+
+            <form
+                class="pch-change-payment"
+                method="POST"
+                action="food_demo_payment.php"
+                id="pch-change-payment-form"
+            >
+
+                <input
+                    type="hidden"
+                    name="csrf"
+                    value="<?= pch_h(pch_csrf()) ?>"
+                >
+
+                <input
+                    type="hidden"
+                    name="action"
+                    value="change_payment_method"
+                >
+
+                <label for="pch-change-method">
+                    Change Payment Method
+                </label>
+
+                <select
+                    id="pch-change-method"
+                    name="online_choice"
+                    required
+                >
+
+                    <?php foreach ($paymentLabels as $key => $label): ?>
+
+                        <option
+                            value="<?= pch_h($key) ?>"
+                            <?= $method === $key ? 'selected' : '' ?>
+                        >
+                            <?= pch_h($label) ?>
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
+
+                <div
+                    id="pch-change-bank-wrap"
+                    <?= $method !== 'fpx' ? 'hidden' : '' ?>
+                >
+
+                    <label for="pch-change-bank">
+                        Select Bank
+                    </label>
+
+                    <select
+                        id="pch-change-bank"
+                        name="bank"
+                    >
+
+                        <option value="">
+                            Choose your bank
+                        </option>
+
+                        <?php foreach ($bankNames as $key => $label): ?>
+
+                            <option
+                                value="<?= pch_h($key) ?>"
+                                <?= ($order['bank'] ?? '') === $key
+                                    ? 'selected'
+                                    : ''
+                                ?>
+                            >
+                                <?= pch_h($label) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </div>
+
+                <p
+                    class="pch-pay-muted mt-2 mb-0"
+                    id="pch-change-hint"
+                    aria-live="polite"
+                >
+                    Your payment screen updates automatically.
+                </p>
+
+            </form>
+
             <div class="pch-pay-warning">
 
-                <strong>Important:</strong>
+                <strong>Test checkout:</strong>
 
-                This page is only a payment simulation
-                for an academic project.
+                This is a practice payment page.
+                No real payment is processed.
 
-                No real money will be transferred.
-
-                Do not enter real card information,
+                Never enter real card numbers,
                 banking passwords, PINs or OTPs.
 
             </div>
+
+        <!-- ============================================
+            RETURN TO CHECKOUT OR CART
+            ============================================ -->
+
+        <div class="pch-payment-back-actions">
+
+            <!-- BACK TO CHECKOUT -->
+
+            <form
+                method="POST"
+                action="food_return_to_edit.php"
+            >
+                <input
+                    type="hidden"
+                    name="csrf"
+                    value="<?= pch_h(pch_csrf()) ?>"
+                >
+
+                <input
+                    type="hidden"
+                    name="destination"
+                    value="checkout"
+                >
+
+                <button
+                    type="submit"
+                    class="pch-payment-back-btn"
+                >
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Checkout
+                </button>
+            </form>
+
+            <!-- EDIT SHOPPING CART -->
+
+            <form
+                method="POST"
+                action="food_return_to_edit.php"
+            >
+                <input
+                    type="hidden"
+                    name="csrf"
+                    value="<?= pch_h(pch_csrf()) ?>"
+                >
+
+                <input
+                    type="hidden"
+                    name="destination"
+                    value="cart"
+                >
+
+                <button
+                    type="submit"
+                    class="pch-payment-back-btn"
+                >
+                    <i class="bi bi-cart3"></i>
+                    Edit My Cart
+                </button>
+            </form>
+
+        </div>
 
         </section>
 
@@ -390,13 +736,21 @@ require __DIR__ . '/includes/header.php';
         <section class="pch-pay-panel">
 
             <h2 class="pch-pay-title">
+
                 <?php if ($method === 'card'): ?>
-                    Test Card Payment
+
+                    Credit / Debit Card
+
                 <?php elseif ($method === 'fpx'): ?>
-                    Mock FPX Banking
+
+                    FPX Online Banking
+
                 <?php else: ?>
-                    Mock TNG Payment
+
+                    Touch 'n Go eWallet
+
                 <?php endif; ?>
+
             </h2>
 
             <!-- ====================================
@@ -406,8 +760,7 @@ require __DIR__ . '/includes/header.php';
             <?php if ($method === 'card'): ?>
 
                 <p class="pch-pay-muted">
-                    Enter the fictional test card
-                    details shown below.
+                    Use the practice card details below.
                 </p>
 
                 <form
@@ -431,7 +784,7 @@ require __DIR__ . '/includes/header.php';
                     <div class="pch-pay-field">
 
                         <label for="test-card">
-                            Test Card Number
+                            Card Number
                         </label>
 
                         <input
@@ -452,7 +805,7 @@ require __DIR__ . '/includes/header.php';
                         <div class="pch-pay-field">
 
                             <label for="test-expiry">
-                                Test Expiry
+                                Expiry Date
                             </label>
 
                             <input
@@ -470,7 +823,7 @@ require __DIR__ . '/includes/header.php';
                         <div class="pch-pay-field">
 
                             <label for="test-cvc">
-                                Test CVC
+                                CVC
                             </label>
 
                             <input
@@ -488,7 +841,7 @@ require __DIR__ . '/includes/header.php';
                     </div>
 
                     <p class="pch-pay-muted">
-                        Accepted fictional details:
+                        Practice details:
                         4242 4242 4242 4242,
                         expiry 12/30,
                         CVC 123.
@@ -498,7 +851,7 @@ require __DIR__ . '/includes/header.php';
                         type="submit"
                         class="pch-pay-button"
                     >
-                        Simulate Card Payment
+                        Pay <?= pch_money($order['total']) ?>
                     </button>
 
                 </form>
@@ -518,7 +871,7 @@ require __DIR__ . '/includes/header.php';
                     </h3>
 
                     <p class="pch-pay-muted">
-                        Simulated Bank Authorization
+                        Payment Authorization
                     </p>
 
                     <p>
@@ -529,12 +882,6 @@ require __DIR__ . '/includes/header.php';
                     </p>
 
                 </div>
-
-                <p class="pch-pay-muted">
-                    Choose whether your mock
-                    bank transaction should succeed
-                    or fail.
-                </p>
 
                 <form
                     method="POST"
@@ -553,16 +900,7 @@ require __DIR__ . '/includes/header.php';
                         value="success"
                         class="pch-pay-button"
                     >
-                        Approve Demo Bank Payment
-                    </button>
-
-                    <button
-                        type="submit"
-                        name="result"
-                        value="failed"
-                        class="pch-pay-button pch-pay-fail"
-                    >
-                        Simulate Bank Payment Failure
+                        Confirm Payment
                     </button>
 
                 </form>
@@ -574,16 +912,15 @@ require __DIR__ . '/includes/header.php';
             <?php else: ?>
 
                 <p class="pch-pay-muted">
-                    This is a mock eWallet payment
-                    screen. The image below is not
-                    a scannable payment QR code.
+                    Review your payment amount below.
+                    The QR icon is illustrative and cannot be scanned.
                 </p>
 
                 <div class="pch-pay-qr">
 
                     <i class="bi bi-qr-code"></i>
 
-                    <span>DEMO ONLY</span>
+                    <span>QR PREVIEW</span>
 
                 </div>
 
@@ -594,7 +931,7 @@ require __DIR__ . '/includes/header.php';
                     </strong>
 
                     <p class="pch-pay-muted mt-2">
-                        Simulated payment amount:
+                        Payment Amount:
                     </p>
 
                     <h3>
@@ -620,28 +957,16 @@ require __DIR__ . '/includes/header.php';
                         value="success"
                         class="pch-pay-button"
                     >
-                        Simulate TNG Payment Success
-                    </button>
-
-                    <button
-                        type="submit"
-                        name="result"
-                        value="failed"
-                        class="pch-pay-button pch-pay-fail"
-                    >
-                        Simulate TNG Payment Failure
+                        Confirm Payment
                     </button>
 
                 </form>
 
             <?php endif; ?>
 
-            <a
-                href="food_order_success.php"
-                class="pch-pay-back"
-            >
-                Return to Order Summary
-            </a>
+            <p class="pch-pay-muted text-center mt-3">
+                Complete payment to confirm your delivery order.
+            </p>
 
         </section>
 
@@ -649,6 +974,99 @@ require __DIR__ . '/includes/header.php';
 
 </main>
 
-<?php
-require __DIR__ . '/includes/footer.php';
-?>
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const changeForm = document.getElementById(
+        'pch-change-payment-form'
+    );
+
+    const method = document.getElementById(
+        'pch-change-method'
+    );
+
+    const bankWrap = document.getElementById(
+        'pch-change-bank-wrap'
+    );
+
+    const bank = document.getElementById(
+        'pch-change-bank'
+    );
+
+    const hint = document.getElementById(
+        'pch-change-hint'
+    );
+
+    if (!changeForm || !method || !bankWrap || !bank) {
+        return;
+    }
+
+    let saving = false;
+
+    function updateBankField() {
+
+        const isFpx = method.value === 'fpx';
+
+        bankWrap.hidden = !isFpx;
+
+        bank.required = isFpx;
+        bank.disabled = !isFpx;
+    }
+
+    function saveChoice() {
+
+        if (saving) {
+            return;
+        }
+
+        if (
+            method.value === 'fpx' &&
+            !bank.value
+        ) {
+            return;
+        }
+
+        saving = true;
+
+        if (hint) {
+            hint.textContent = 'Updating payment method...';
+        }
+
+        changeForm.submit();
+    }
+
+    method.addEventListener('change', function () {
+
+        updateBankField();
+
+        if (
+            method.value === 'fpx' &&
+            !bank.value
+        ) {
+
+            if (hint) {
+                hint.textContent = 'Choose a bank to continue.';
+            }
+
+            bank.focus();
+            return;
+        }
+
+        saveChoice();
+    });
+
+    bank.addEventListener('change', function () {
+
+        if (method.value === 'fpx') {
+            saveChoice();
+        }
+    });
+
+    updateBankField();
+
+});
+
+</script>
+
+<?php require __DIR__ . '/includes/footer.php'; ?>
